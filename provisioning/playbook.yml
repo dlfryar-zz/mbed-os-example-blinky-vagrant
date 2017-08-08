@@ -5,37 +5,51 @@
     source_dir: "{{ home_dir }}/Source"
     mbed_cli: "/usr/local/bin/mbed"
   tasks:
+
     - name: Update apt cache if not done today
       apt: update_cache=yes cache_valid_time=86400
       become: yes
       become_method: sudo
+
     - name: Install Vim, Most, Tree, Git, Mercurial, Python Pip
       apt: state=latest pkg=vim,most,tree,git,mercurial,python-pip
       become: yes
       become_method: sudo
-    - name: Install GCC cross compiler for ARM Cortex-A/R/M processors
-      apt: state=latest pkg=gcc-arm-none-eabi
+
+    - name: Install GNU ARM Embedded Toolchain PPA
+      apt_repository: repo='ppa:team-gcc-arm-embedded/ppa' state=present
       become: yes
       become_method: sudo
+
+    - name: Install GCC for ARM Cortex-A/R/M processors
+      apt: state=latest name=gcc-arm-embedded
+      become: yes
+      become_method: sudo
+
     - name: Upgrade Pip if available
       command: pip install --upgrade pip
+
     - name: Install the ARM mbed command line interface
       pip: name=mbed-cli
       become: yes
       become_method: sudo
+
     - name: Creates a ~/Source directory for building mbed firmware
       file: path={{ source_dir }} state=directory
+
     - name: Import mbed-os-example-blinky
       shell: /usr/local/bin/mbed import mbed-os-example-blinky >> mbed-cli-import.log
       args:
         chdir: "{{ source_dir }}"
         creates: mbed-cli-import.log
+
     - name: Pip install mbed OS requirements for mbed-cli
       shell: pip install -r requirements.txt
       become: yes
       become_method: sudo
       args:
         chdir: "{{ source_dir }}/mbed-os-example-blinky/mbed-os"
+
     - name: Compile mbed-os-example-blinky for FRDM-K64F using GCC_ARM compiler
       shell: /usr/local/bin/mbed compile -m K64F -t GCC_ARM -c >> mbed-cli-compile.log
       args:
